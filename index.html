@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mizzverse - BY:G33KY</title>
+<style>
+  :root{
+    --hot-pink:#ff2fb0;
+    --magenta:#c4127b;
+    --black:#0a0308;
+    --ink:#160910;
+    --foil-a:#ff2fb0;
+    --foil-b:#7b2ff7;
+    --foil-c:#2fe0ff;
+    --foil-d:#ff2f5e;
+    --foil-e:#ffe94a;
+  }
+
+  *{box-sizing:border-box;}
+
+  html,body{
+    margin:0;
+    min-height:100%;
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(255,47,176,0.25), transparent 55%),
+      radial-gradient(ellipse at 100% 10%, rgba(123,47,247,0.18), transparent 50%),
+      var(--black);
+    color:#f4e9f0;
+    font-family: 'Courier New', ui-monospace, monospace;
+    overflow-x:hidden;
+  }
+
+  /* faint scanline / static texture, MySpace-era grime */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image: repeating-linear-gradient(
+      0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px,
+      transparent 1px, transparent 3px
+    );
+    pointer-events:none;
+    z-index:0;
+    mix-blend-mode:overlay;
+  }
+
+  nav{
+    position:relative;
+    z-index:2;
+    display:flex;
+    flex-wrap:wrap;
+    gap:1.4rem;
+    padding:1.1rem 1.6rem;
+    border-bottom:1px solid rgba(255,47,176,0.25);
+    background:rgba(10,3,8,0.6);
+    backdrop-filter:blur(6px);
+  }
+  nav a{
+    color:#e9b9d4;
+    text-decoration:none;
+    font-size:0.78rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    opacity:0.75;
+    transition:opacity .2s, color .2s;
+  }
+  nav a:hover{ opacity:1; color:var(--hot-pink); }
+
+  header.hero{
+    position:relative;
+    z-index:2;
+    text-align:center;
+    padding: 3.2rem 1rem 1.2rem;
+  }
+  header.hero h1{
+    font-family: 'Impact', 'Arial Black', sans-serif;
+    font-size: clamp(2.4rem, 7vw, 4.6rem);
+    letter-spacing:0.04em;
+    margin:0;
+    background:linear-gradient(100deg, var(--foil-e), var(--foil-a) 35%, var(--foil-c) 60%, var(--foil-b) 85%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    text-shadow: 0 0 40px rgba(255,47,176,0.35);
+    filter: drop-shadow(0 0 18px rgba(123,47,247,0.35));
+  }
+  header.hero p.sub{
+    margin:0.6rem 0 0;
+    color:#e9b9d4;
+    letter-spacing:0.25em;
+    text-transform:uppercase;
+    font-size:0.72rem;
+    opacity:0.7;
+  }
+
+  .whatnot-link{
+    display:inline-block;
+    margin-top:1.4rem;
+    padding:0.55rem 1.4rem;
+    border:1px solid var(--hot-pink);
+    color:var(--hot-pink);
+    text-decoration:none;
+    font-size:0.75rem;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    border-radius:2px;
+    transition: all .2s;
+    background: rgba(255,47,176,0.06);
+  }
+  .whatnot-link:hover{
+    background:var(--hot-pink);
+    color:var(--black);
+    box-shadow:0 0 24px rgba(255,47,176,0.6);
+  }
+
+  .stage{
+    position:relative;
+    z-index:2;
+    min-height:min(120vh, 900px);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding: 2.2rem 1rem 5rem;
+  }
+
+  .hint{
+    position:absolute;
+    top:0.4rem; left:50%;
+    transform:translateX(-50%);
+    font-size:0.66rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:#e9b9d4;
+    opacity:0.55;
+    text-align:center;
+    width:100%;
+  }
+
+  .card-wrap{
+    position:relative;
+    width: min(78vw, 300px);
+    aspect-ratio: 416 / 752;
+    touch-action:none;
+    will-change: transform;
+    transform: translate3d(var(--tx,0px), var(--ty,0px), 0)
+               perspective(900px)
+               rotateX(var(--rx,0deg))
+               rotateY(var(--ry,0deg))
+               scale(var(--scale,1));
+    transition: transform 320ms cubic-bezier(.2,.8,.2,1), box-shadow 320ms ease;
+    cursor: grab;
+  }
+  .card-wrap.grabbing{
+    cursor: grabbing;
+    transition: box-shadow 320ms ease; /* no transform easing while dragging: instant follow */
+  }
+  .card-wrap.settling{
+    transition: transform 550ms cubic-bezier(.2,.9,.25,1.2), box-shadow 320ms ease;
+  }
+
+  .card{
+    position:relative;
+    width:100%;
+    height:100%;
+    border-radius:16px;
+    overflow:hidden;
+    border: 3px solid rgba(255,255,255,0.55);
+    box-shadow:
+      0 25px 60px -15px rgba(0,0,0,0.8),
+      0 0 40px -5px rgba(255,47,176,0.35);
+    background:#000;
+  }
+
+  .card video{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+
+  /* holographic sheen layer - follows pointer */
+  .card .foil{
+    position:absolute;
+    inset:0;
+    mix-blend-mode: color-dodge;
+    opacity:0.65;
+    background:
+      repeating-linear-gradient(
+        115deg,
+        rgba(255,47,176,0.9) 0%,
+        rgba(255,233,74,0.9) 8%,
+        rgba(47,224,255,0.9) 16%,
+        rgba(123,47,247,0.9) 24%,
+        rgba(255,47,94,0.9) 32%,
+        rgba(255,47,176,0.9) 40%
+      );
+    background-size: 220% 220%;
+    background-position: var(--fx, 50%) var(--fy, 50%);
+    pointer-events:none;
+  }
+
+  /* second sparkle/glare layer that tracks pointer directly */
+  .card .glare{
+    position:absolute;
+    inset:0;
+    mix-blend-mode: overlay;
+    opacity:0.85;
+    background: radial-gradient(
+      circle at var(--gx,50%) var(--gy,50%),
+      rgba(255,255,255,0.85) 0%,
+      rgba(255,255,255,0.25) 18%,
+      rgba(255,255,255,0) 45%
+    );
+    pointer-events:none;
+  }
+
+  .card .frame-edge{
+    position:absolute;
+    inset:0;
+    border-radius:16px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4), inset 0 0 30px rgba(0,0,0,0.6);
+    pointer-events:none;
+  }
+
+  footer{
+    position:relative;
+    z-index:2;
+    text-align:center;
+    font-size:0.65rem;
+    color:#7a5a68;
+    padding:2rem 1rem 3rem;
+    letter-spacing:0.05em;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .card-wrap{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="https://realityisbuffering.weebly.com/">Reality is Buffering Comic</a>
+  <a href="https://realityisbuffering.weebly.com/unsolicteddeckpics.html">Unsolicited Deck Pics</a>
+  <a href="https://realityisbuffering.weebly.com/fancyfontgenerator.html">Fancy Font Generator</a>
+  <a href="#" style="opacity:1;color:var(--hot-pink);">Mizzverse</a>
+</nav>
+
+<header class="hero">
+  <h1>THE MIZZVERSE</h1>
+  <p class="sub">Collectors Edition &mdash; Limited to One</p>
+  <a class="whatnot-link" href="https://www.whatnot.com/user/mizzmizzfit" target="_blank" rel="noopener">Shop on Whatnot</a>
+</header>
+
+<div class="stage">
+  <p class="hint">tilt with your mouse &bull; click and drag to move the card</p>
+
+  <div class="card-wrap" id="cardWrap">
+    <div class="card" id="card">
+      <video autoplay muted loop playsinline>
+        <source src="mizz-card.mp4" type="video/mp4">
+      </video>
+      <div class="foil"></div>
+      <div class="glare"></div>
+      <div class="frame-edge"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  &copy; BY:G33KY &mdash; the Mizz is awesome
+</footer>
+
+<script>
+(function(){
+  const wrap = document.getElementById('cardWrap');
+  const card = document.getElementById('card');
+
+  let tx = 0, ty = 0;       // drag translate offset
+  let dragging = false;
+  let startX = 0, startY = 0, originX = 0, originY = 0;
+
+  function setVar(name, val){ wrap.style.setProperty(name, val); }
+
+  function updateTiltFromEvent(clientX, clientY){
+    const rect = card.getBoundingClientRect();
+    const relX = (clientX - rect.left) / rect.width;   // 0..1
+    const relY = (clientY - rect.top) / rect.height;    // 0..1
+    const rx = (0.5 - relY) * 22;   // rotateX range
+    const ry = (relX - 0.5) * 26;   // rotateY range
+    setVar('--rx', rx.toFixed(2) + 'deg');
+    setVar('--ry', ry.toFixed(2) + 'deg');
+    setVar('--fx', (relX * 100).toFixed(1) + '%');
+    setVar('--fy', (relY * 100).toFixed(1) + '%');
+    setVar('--gx', (relX * 100).toFixed(1) + '%');
+    setVar('--gy', (relY * 100).toFixed(1) + '%');
+  }
+
+  function resetTilt(){
+    setVar('--rx', '0deg');
+    setVar('--ry', '0deg');
+    setVar('--fx', '50%');
+    setVar('--fy', '50%');
+    setVar('--gx', '50%');
+    setVar('--gy', '50%');
+    setVar('--scale', '1');
+  }
+
+  wrap.addEventListener('pointermove', (e) => {
+    if (!dragging){
+      wrap.classList.remove('settling');
+      updateTiltFromEvent(e.clientX, e.clientY);
+    }
+  });
+
+  wrap.addEventListener('pointerenter', () => {
+    setVar('--scale', '1.04');
+  });
+
+  wrap.addEventListener('pointerleave', (e) => {
+    if (!dragging){
+      wrap.classList.add('settling');
+      resetTilt();
+    }
+  });
+
+  wrap.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    wrap.classList.add('grabbing');
+    wrap.classList.remove('settling');
+    wrap.setPointerCapture(e.pointerId);
+    startX = e.clientX;
+    startY = e.clientY;
+    originX = tx;
+    originY = ty;
+    setVar('--scale', '1.08');
+  });
+
+  wrap.addEventListener('pointermove', (e) => {
+    if (dragging){
+      tx = originX + (e.clientX - startX);
+      ty = originY + (e.clientY - startY);
+      setVar('--tx', tx + 'px');
+      setVar('--ty', ty + 'px');
+      updateTiltFromEvent(e.clientX, e.clientY);
+    }
+  });
+
+  function endDrag(e){
+    if (!dragging) return;
+    dragging = false;
+    wrap.classList.remove('grabbing');
+    setVar('--scale', '1');
+  }
+
+  wrap.addEventListener('pointerup', endDrag);
+  wrap.addEventListener('pointercancel', endDrag);
+
+  resetTilt();
+})();
+</script>
+
+</body>
+</html>
